@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listar Produtos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="./../../css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-3 col-lg-2 sidebar">
+            <div class="navbar-brand mb-3 mt-2 text-center">
+                Painel Administrativo
+            </div>
+            <ul class="navbar-nav flex-column mb-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="dashboard.html"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#"><i class="fas fa-users"></i> Clientes</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="listar-produtos.html"><i class="fas fa-boxes"></i> Produtos</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#"><i class="fas fa-tags"></i> Categorias</a>
+                </li>
+                <!-- Adicione mais itens de navegação conforme necessário -->
+            </ul>
+        </nav>
+        <main class="col-md-9 col-lg-10 main-content">
+            <div class="container">
+                <h1 class="mt-4">Lista de Produtos</h1>
+                <div class="mt-4">
+                    <a class="btn btn-primary mb-3" href="./CadastroProduto/Cadastro.html">
+                        <i class="fas fa-plus"></i> Cadastrar Produto
+                    </a>
+                </div>
+                <div id="listaProdutos" class="mt-4">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th scope="col">#</th>
+                                <th scope="col">Imagem</th>
+                                <th scope="col">Nome</th>
+                                <th scope="col">Preço</th>
+                                <th scope="col">Descrição</th>
+                                <th scope="col">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="corpoTabela">
+                            <!-- Linhas da tabela serão preenchidas dinamicamente com JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Modal de Edição de Produto -->
+<div class="modal fade" id="modalEditarProduto" tabindex="-1" aria-labelledby="modalEditarProdutoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalEditarProdutoLabel">Editar Produto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Formulário de Edição de Produto -->
+                <form id="formEditarProduto">
+                    <input type="hidden" id="idProdutoEditar" name="idProdutoEditar">
+                    <div class="mb-3">
+                        <label for="nomeProdutoEditar" class="form-label">Nome</label>
+                        <input type="text" class="form-control" id="nomeProdutoEditar" name="nomeProdutoEditar" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="descricaoProdutoEditar" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="descricaoProdutoEditar" name="descricaoProdutoEditar" rows="3" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="precoProdutoEditar" class="form-label">Preço</label>
+                        <input type="text" class="form-control" id="precoProdutoEditar" name="precoProdutoEditar" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quantidadeProdutoEditar" class="form-label">Quantidade</label>
+                        <input type="number" class="form-control" id="quantidadeProdutoEditar" name="quantidadeProdutoEditar" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="categoriaProdutoEditar" class="form-label">Categoria</label>
+                        <select class="form-select" id="categoriaProdutoEditar" name="categoriaProdutoEditar" required>
+                            <!-- Opções de categorias serão preenchidas dinamicamente -->
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    // URL base do seu backend Spring Boot
+    const baseURL = 'http://localhost:8080';
+
+    // Carregar produtos ao carregar a página
+    $(document).ready(function() {
+        carregarProdutos();
+    });
+
+    // Função para carregar produtos na tabela
+    function carregarProdutos() {
+        const urlListarProdutos = `${baseURL}/produtos`;
+
+        fetch(urlListarProdutos)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao buscar produtos.');
+                }
+                return response.json();
+            })
+            .then(produtos => {
+                const corpoTabela = document.getElementById('corpoTabela');
+                corpoTabela.innerHTML = ''; // Limpa o conteúdo atual da tabela
+                produtos.forEach(produto => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${produto.id}</td>
+                        <td><img src="${baseURL}/produtos/imagem/${produto.id}" alt="Imagem do produto" style="max-width: 100px;"></td>
+                        <td>${produto.nome}</td>
+                        <td>${produto.preco}</td>
+                        <td>${produto.descricao}</td>
+                        <td>
+                            <button type="button" class="btn btn-warning btn-sm" onclick="preencherModalEditar(${produto.id})">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="confirmarExclusao(${produto.id})">
+                                <i class="fas fa-trash"></i> Excluir
+                            </button>
+                        </td>
+                    `;
+                    corpoTabela.appendChild(tr);
+                });
+            })
+            .catch(error => {
+                console.error('Erro ao carregar produtos:', error);
+                Swal.fire(
+                    'Erro!',
+                    'Ocorreu um erro ao carregar os produtos.',
+                    'error'
+                );
+            });
+    }
+
+    // Função para preencher o modal de edição com os dados do produto selecionado
+    function preencherModalEditar(id) {
+        const urlBuscarProduto = `${baseURL}/produtos/${id}`;
+
+        fetch(urlBuscarProduto)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao buscar produto para edição.');
+                }
+                return response.json();
+            })
+            .then(produto => {
+                // Preencher os campos do formulário de edição com os dados do produto
+                document.getElementById('idProdutoEditar').value = produto.id;
+                document.getElementById('nomeProdutoEditar').value = produto.nome;
+                document.getElementById('descricaoProdutoEditar').value = produto.descricao;
+                document.getElementById('precoProdutoEditar').value = produto.preco;
+                document.getElementById('quantidadeProdutoEditar').value = produto.quantidade;
+
+                // Carregar as categorias disponíveis no select
+                carregarCategoriasEditar(produto.categoria.id);
+
+                // Abrir o modal de edição
+                var myModal = new bootstrap.Modal(document.getElementById('modalEditarProduto'));
+                myModal.show();
+            })
+            .catch(error => {
+                console.error('Erro ao buscar produto:', error);
+                Swal.fire(
+                    'Erro!',
+                    'Ocorreu um erro ao buscar o produto para edição.',
+                    'error'
+                );
+            });
+    }
+
+    // Função para carregar as categorias disponíveis no select de edição
+    function carregarCategoriasEditar(idCategoriaSelecionada) {
+        const urlListarCategorias = `${baseURL}/categorias`;
+
+        fetch(urlListarCategorias)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erro ao buscar categorias.');
+                }
+                return response.json();
+            })
+            .then(categorias => {
+                const selectCategoria = document.getElementById('categoriaProdutoEditar');
+                selectCategoria.innerHTML = ''; // Limpa o conteúdo atual do select
+                categorias.forEach(categoria => {
+                    const option = document.createElement('option');
+                    option.value = categoria.id;
+                    option.textContent = categoria.nome;
+                    if (categoria.id === idCategoriaSelecionada) {
+                        option.selected = true; // Seleciona a categoria atual do produto
+                    }
+                    selectCategoria.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Erro ao carregar categorias:', error);
+                Swal.fire(
+                    'Erro!',
+                    'Ocorreu um erro ao carregar as categorias.',
+                    'error'
+                );
+            });
+    }
+
+    // Função para submeter o formulário de edição de produto
+    document.getElementById('formEditarProduto').addEventListener('submit', function(event) {
+        event.preventDefault(); // Evita o comportamento padrão de submissão do formulário
+
+        const idProduto = document.getElementById('idProdutoEditar').value;
+        const urlEditarProduto = `${baseURL}/produtos/${idProduto}`;
+
+        fetch(urlEditarProduto, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                nome: document.getElementById('nomeProdutoEditar').value,
+                descricao: document.getElementById('descricaoProdutoEditar').value,
+                preco: document.getElementById('precoProdutoEditar').value,
+                quantidade: document.getElementById('quantidadeProdutoEditar').value,
+                categoria: {
+                    id: document.getElementById('categoriaProdutoEditar').value
+                }
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro ao editar produto.');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Produto editado com sucesso:', data);
+            $('#modalEditarProduto').modal('hide'); // Fechar modal após edição
+            carregarProdutos(); // Recarregar lista de produtos
+            Swal.fire(
+                'Sucesso!',
+                'Produto editado com sucesso.',
+                'success'
+            ).then(() => {
+                location.reload(); // Recarrega a página após fechar o modal
+            });
+        })
+        .catch(error => {
+            console.error('Erro ao editar produto:', error);
+            Swal.fire(
+                'Erro!',
+                'Ocorreu um erro ao editar o produto.',
+                'error'
+            );
+        });
+    });
+
+    // Função para confirmar a exclusão de um produto
+    function confirmarExclusao(id) {
+        Swal.fire({
+            title: 'Confirmar Exclusão',
+            text: 'Tem certeza que deseja excluir este produto?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sim, excluir!',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                excluirProduto(id);
+            }
+        });
+    }
+
+    // Função para excluir um produto
+    function excluirProduto(id) {
+        const urlExcluirProduto = `${baseURL}/produtos/${id}`;
+
+        fetch(urlExcluirProduto, {
+            method: 'DELETE'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Erro ao excluir produto.');
+            }
+            carregarProdutos(); // Recarregar lista de produtos após exclusão
+            Swal.fire(
+                'Excluído!',
+                'Produto excluído com sucesso.',
+                'success'
+            );
+        })
+        .catch(error => {
+            console.error('Erro ao excluir produto:', error);
+            Swal.fire(
+                'Erro!',
+                'Ocorreu um erro ao excluir o produto.',
+                'error'
+            );
+        });
+    }
+</script>
+
+
+</body>
+</html>
